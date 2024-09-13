@@ -22,7 +22,7 @@
         "@reduxjs/toolkit": "^1.9.1",
         "@tippyjs/react": "^4.2.6",
         "@types/react-dom": "18.0.10",
-        "@x1mrdonut1x/nouislider-react": "^3.4.3",
+        
         "apexcharts": "^3.37.1",
         "aws-sdk": "^2.1030.0",
         "axios": "^1.6.8",
