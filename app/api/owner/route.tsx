@@ -3,7 +3,7 @@ import ownerModel from "@/models/owner";
 import petModel from "@/models/pet";
 import connectDB from "@/config/database";
 import { NextResponse, NextRequest } from "next/server";
-import bcrypt from "bcryptjs"; // Switch to bcryptjs
+import crypto from "crypto"; // Use crypto for MD5 hashing
 
 // Utility function for setting CORS headers
 const setCORSHeaders = (response) => {
@@ -14,6 +14,11 @@ const setCORSHeaders = (response) => {
   );
   response.headers.set("Access-Control-Allow-Headers", "Content-Type");
   return response;
+};
+
+// MD5 hashing function
+const hashPassword = (password) => {
+  return crypto.createHash("md5").update(password).digest("hex");
 };
 
 // Handle OPTIONS request for CORS preflight
@@ -47,8 +52,8 @@ export async function POST(request) {
       );
     }
 
-    // Hash the password before saving it to the database
-    const hashedPassword = await bcrypt.hash(password, 10); // bcryptjs works similarly
+    // Hash the password using MD5 before saving it to the database
+    const hashedPassword = hashPassword(password);
 
     await connectDB();
 
@@ -57,7 +62,7 @@ export async function POST(request) {
       address,
       phoneno,
       email,
-      password: hashedPassword, // Save the hashed password
+      password: hashedPassword, // Save the hashed password using MD5
       pets, // Ensure pets are an array of ObjectIds
     });
 
@@ -91,6 +96,7 @@ export async function POST(request) {
   }
 }
 
+// GET: Fetch all owners and populate pets
 export async function GET() {
   console.log("GET request received");
   await connectDB();
