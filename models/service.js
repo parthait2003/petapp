@@ -10,7 +10,8 @@ const serviceSchema = new mongoose.Schema({
   subservices: [
     {
       name: { type: String, required: false },
-      amount: { type: String, required: false }
+      regularprice: { type: String, required: false },
+      sellprice: { type: String, required: false },
     }
   ]
 });
