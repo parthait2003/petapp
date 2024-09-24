@@ -17,12 +17,12 @@ const ComponentsDatatablesService = () => {
   const [recordsData, setRecordsData] = useState([]); // Data for the DataTable
   const [formData, setFormData] = useState({
     services: [{ name: ""}],
-    subservices: [{ name: "", amount: "" }]
+    subservices: [{ name: "", regularprice: "" ,sellprice: ""}]
   });
 
   const [editFormData, setEditFormData] = useState({
     services: [{ name: "" }],
-    subservices: [{ name: "", amount: "" }]
+    subservices: [{ name: "", regularprice: "" , sellprice: ""}]
   });
 
   const [editId, setEditId] = useState(null); // Track the service to edit
@@ -70,7 +70,7 @@ const ComponentsDatatablesService = () => {
 
       setFormData({
         services: [{ name: "" }],
-        subservices: [{ name: "", amount: "" }]
+        subservices: [{ name: "", regularprice: "" , sellprice: ""}]
       }); // Reset form
       setModal1(false); // Close modal
       setEditMode(false); // Reset edit mode
@@ -83,7 +83,7 @@ const ComponentsDatatablesService = () => {
   const handleAddClick = () => {
     setFormData({
       services: [{ name: "" }],
-      subservices: [{ name: "", amount: "" }]
+      subservices: [{ name: "", regularprice: "" , sellprice: ""}]
     });
     setEditMode(false);
     setModal1(true);
@@ -158,7 +158,7 @@ const ComponentsDatatablesService = () => {
   const handleAddSubServiceRow = () => {
     setFormData((prev) => ({
       ...prev,
-      subservices: [...prev.subservices, { name: "", amount: "" }]
+      subservices: [...prev.subservices, { name: "", regularprice: "", sellprice: "" }]
     }));
   };
 
@@ -203,10 +203,16 @@ const ComponentsDatatablesService = () => {
               row.subservices.map((subservice) => subservice.name).join(", ")
           },
           {
-            accessor: "subserviceAmounts",
-            title: "Amount",
+            accessor: "subserviceregularprices",
+            title: "Regularprice",
             render: (row) =>
-              row.subservices.map((subservice) => subservice.amount).join(", ")
+              row.subservices.map((subservice) => subservice.regularprice).join(", ")
+          },
+          {
+            accessor: "subservicesellprices",
+            title: "Sellprice",
+            render: (row) =>
+              row.subservices.map((subservice) => subservice.sellprice).join(", ")
           },
           {
             accessor: "actions",
@@ -319,9 +325,17 @@ const ComponentsDatatablesService = () => {
                             />
                             <input
                               type="number"
-                              name="amount"
-                              placeholder="Amount"
-                              value={subservice.amount}
+                              name="regularprice"
+                              placeholder="Regularprice"
+                              value={subservice.regularprice}
+                              onChange={(e) => handleSubServiceChange(index, e)}
+                              className="form-input"
+                            />
+                             <input
+                              type="number"
+                              name="sellprice"
+                              placeholder="Sellprice"
+                              value={subservice.sellprice}
                               onChange={(e) => handleSubServiceChange(index, e)}
                               className="form-input"
                             />
