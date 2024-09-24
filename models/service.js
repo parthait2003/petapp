@@ -1,11 +1,21 @@
 import mongoose from 'mongoose';
 
 const serviceSchema = new mongoose.Schema({
-  service_name: { type: String, required: true },
-  description: String,
-  price: Number,
-  service_type: String,
-  veterinarian_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Veterinarian' }
+  services: [
+    {
+      name: { type: String, required: true },
+      
+    }
+  ],
+  subservices: [
+    {
+      name: { type: String, required: false },
+      amount: { type: String, required: false }
+    }
+  ]
 });
 
-export default mongoose.models.Service || mongoose.model('Service', serviceSchema);
+// Check if the model is already compiled before defining it
+const Services = mongoose.models.Services || mongoose.model('Services', serviceSchema);
+
+export default Services;
