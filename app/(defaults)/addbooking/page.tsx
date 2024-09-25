@@ -120,6 +120,10 @@ export default function HomePage() {
   });
   const [bookingDate, setBookingDate] = useState<Date[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
+  const [transactionId, setTransactionId] = useState<string>(""); // New state for transactionId
+  const [paymentStatus, setPaymentStatus] = useState<string>(""); // New state for paymentStatus
+  const [regularprice, setRegularPrice] = useState<string>(""); // New state for regularPrice
+  const [sellprice, setSellPrice] = useState<string>(""); 
   const [submitted, setSubmitted] = useState<boolean>(false); // New state for form submission
 
   useEffect(() => {
@@ -197,6 +201,10 @@ export default function HomePage() {
     });
     setBookingDate([]);
     setSelectedTimeSlot("");
+    setTransactionId("");
+    setPaymentStatus("");
+    setRegularPrice("");
+    setSellPrice("");
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -214,6 +222,10 @@ export default function HomePage() {
       questions,
       bookingDate: formattedBookingDate,
       selectedTimeSlot,
+      transactionId,   // Include new fields
+      paymentStatus,
+      regularprice,
+      sellprice,
     };
 
     console.log("Form Data:", formData);
@@ -341,6 +353,60 @@ export default function HomePage() {
                 </select>
               </div>
             )}
+
+<div className="mb-8">
+              <label htmlFor="transactionId" className="block text-lg font-medium text-gray-700">
+                Transaction ID
+              </label>
+              <input
+                type="text"
+                id="transactionId"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="paymentStatus" className="block text-lg font-medium text-gray-700">
+                Payment Status
+              </label>
+              <input
+                type="text"
+                id="paymentStatus"
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="regularprice" className="block text-lg font-medium text-gray-700">
+                Regular Price
+              </label>
+              <input
+                type="text"
+                id="regularprice"
+                value={regularprice}
+                onChange={(e) => setRegularPrice(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="sellPrice" className="block text-lg font-medium text-gray-700">
+                Sell Price
+              </label>
+              <input
+                type="text"
+                id="sellprice"
+                value={sellprice}
+                onChange={(e) => setSellPrice(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+
 
             {/* Yes/No Questions */}
             {["eats", "vaccinationCard", "illness", "allergy"].map((field) => (
