@@ -36,7 +36,6 @@ const ComponentsDatatablesBooking = () => {
   const [feedback, setFeedback] = useState(""); // Feedback comment state
 
   // Fetch booking data from the API
-  // Fetch booking data from the API
   const fetchBookingData = async () => {
     try {
       const response = await fetch("/api/booking");
@@ -47,25 +46,32 @@ const ComponentsDatatablesBooking = () => {
         const bookingsWithNames = await Promise.all(
           data.bookings.map(async (booking) => {
             try {
-              const ownerResponse = await fetch(
-                `/api/owner/${booking.ownerId}`
-              );
+              const ownerResponse = await fetch(`/api/owner/${booking.ownerId}`);
               const ownerData = await ownerResponse.json();
 
               const petResponse = await fetch(`/api/pet/${booking.petId}`);
               const petData = await petResponse.json();
 
+              // Handle cases where owner or pet data is missing
+              if (!ownerData.owner) {
+                console.error(`Owner data is missing for booking: ${booking._id}`);
+              }
+
+              if (!petData.pet) {
+                console.error(`Pet data is missing for booking: ${booking._id}`);
+              }
+
               return {
                 ...booking,
-                ownerName: ownerData.owner ? ownerData.owner.name : "Unknown", // Handle missing owner
-                petName: petData.pet ? petData.pet.name : "Unknown", // Handle missing pet
+                ownerName: ownerData?.owner?.name || 'Unknown Owner',
+                petName: petData?.pet?.name || 'Unknown Pet',
               };
             } catch (error) {
               console.error("Error fetching owner or pet data:", error);
               return {
                 ...booking,
-                ownerName: "Unknown",
-                petName: "Unknown",
+                ownerName: "Unknown Owner",
+                petName: "Unknown Pet",
               };
             }
           })
@@ -149,11 +155,7 @@ const ComponentsDatatablesBooking = () => {
         if (status === "completed") {
           setIsFeedbackModalOpen(true);
         } else {
-          Swal.fire(
-            "Updated!",
-            "The booking status has been updated.",
-            "success"
-          );
+          Swal.fire("Updated!", "The booking status has been updated.", "success");
           fetchBookingData(); // Refresh the data after update
         }
       } else {
@@ -185,11 +187,7 @@ const ComponentsDatatablesBooking = () => {
         fetchBookingData(); // Refresh the bookings data
       } else {
         const data = await response.json();
-        Swal.fire(
-          "Error",
-          data.message || "Failed to submit feedback.",
-          "error"
-        );
+        Swal.fire("Error", data.message || "Failed to submit feedback.", "error");
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
