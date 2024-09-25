@@ -45,17 +45,35 @@ const ComponentsDatatablesBooking = () => {
         // Fetch owner and pet names for each booking
         const bookingsWithNames = await Promise.all(
           data.bookings.map(async (booking) => {
-            const ownerResponse = await fetch(`/api/owner/${booking.ownerId}`);
-            const ownerData = await ownerResponse.json();
+            try {
+              const ownerResponse = await fetch(`/api/owner/${booking.ownerId}`);
+              const ownerData = await ownerResponse.json();
 
-            const petResponse = await fetch(`/api/pet/${booking.petId}`);
-            const petData = await petResponse.json();
-            console.log(ownerData.owner.name);
-            return {
-              ...booking,
-              ownerName: ownerData.owner.name,
-              petName: petData.pet.name,
-            };
+              const petResponse = await fetch(`/api/pet/${booking.petId}`);
+              const petData = await petResponse.json();
+
+              // Handle cases where owner or pet data is missing
+              if (!ownerData.owner) {
+                console.error(`Owner data is missing for booking: ${booking._id}`);
+              }
+
+              if (!petData.pet) {
+                console.error(`Pet data is missing for booking: ${booking._id}`);
+              }
+
+              return {
+                ...booking,
+                ownerName: ownerData?.owner?.name || 'Unknown Owner',
+                petName: petData?.pet?.name || 'Unknown Pet',
+              };
+            } catch (error) {
+              console.error("Error fetching owner or pet data:", error);
+              return {
+                ...booking,
+                ownerName: "Unknown Owner",
+                petName: "Unknown Pet",
+              };
+            }
           })
         );
 
@@ -129,10 +147,10 @@ const ComponentsDatatablesBooking = () => {
         },
         body: JSON.stringify({ status }), // Send the updated status to the backend
       });
-  
+
       if (response.ok) {
         setIsEditModalOpen(false);
-  
+
         // If the status is 'completed', open feedback modal
         if (status === "completed") {
           setIsFeedbackModalOpen(true);
@@ -147,7 +165,7 @@ const ComponentsDatatablesBooking = () => {
       console.error("Error updating booking:", error);
     }
   };
-  
+
   // Handle feedback submit
   const handleFeedbackSubmit = async () => {
     try {
@@ -162,7 +180,7 @@ const ComponentsDatatablesBooking = () => {
           feedback, // Send the feedback provided by the user
         }),
       });
-  
+
       if (response.ok) {
         Swal.fire("Thank you!", "Your feedback has been submitted.", "success");
         setIsFeedbackModalOpen(false); // Close the feedback modal
@@ -176,7 +194,6 @@ const ComponentsDatatablesBooking = () => {
       Swal.fire("Error", "Failed to submit feedback.", "error");
     }
   };
-  
 
   return (
     <div className="panel mt-6">
