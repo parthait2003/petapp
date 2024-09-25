@@ -66,12 +66,16 @@ export async function POST(request: NextRequest) {
       selectedSubService,
       ownerId,
       petId,
+      transactionId,
+      paymentstatus,
+      regularprice,
+      sellprice,
       questions,
       bookingDate,
       selectedTimeSlot,
       status, // Now accepting status from the request body
       rating, // Optionally accept rating if status is "completed"
-      feedback, // Optionally accept feedback if status is "completed"
+      feedback // Optionally accept feedback if status is "completed"
     } = requestBody;
 
     // Step 2: Connect to the database
@@ -83,12 +87,16 @@ export async function POST(request: NextRequest) {
       selectedSubService,
       ownerId,
       petId,
+      transactionId,
+      paymentstatus,
+      regularprice,
+      sellprice,
       questions,
       bookingDate,
       selectedTimeSlot,
       status: status || "pending", // Default status is "pending"
       rating,
-      feedback,
+      feedback
     };
 
     // If the status is "completed", include rating and feedback
@@ -133,6 +141,3 @@ export async function POST(request: NextRequest) {
     return response;
   }
 }
-
-
-
