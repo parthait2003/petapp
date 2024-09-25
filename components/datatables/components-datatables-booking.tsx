@@ -22,7 +22,6 @@ const ComponentsDatatablesBooking = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [status, setStatus] = useState("");
-  const [modal, setModal] = useState(false);
   const [initialRecords, setInitialRecords] = useState([]); // Initial fetched records
   const [recordsData, setRecordsData] = useState([]); // Data to display in the table
   const [page, setPage] = useState(1);
@@ -65,6 +64,7 @@ const ComponentsDatatablesBooking = () => {
                 ...booking,
                 ownerName: ownerData?.owner?.name || 'Unknown Owner',
                 petName: petData?.pet?.name || 'Unknown Pet',
+                questions: booking?.questions || {}, // Ensure questions field is always an object
               };
             } catch (error) {
               console.error("Error fetching owner or pet data:", error);
@@ -72,6 +72,7 @@ const ComponentsDatatablesBooking = () => {
                 ...booking,
                 ownerName: "Unknown Owner",
                 petName: "Unknown Pet",
+                questions: {}, // Set default questions object to avoid undefined errors
               };
             }
           })
@@ -245,25 +246,25 @@ const ComponentsDatatablesBooking = () => {
               accessor: "questions.eats",
               title: "Eats",
               render: (record) =>
-                record.questions.eats === "yes" ? "Yes" : "No",
+                record.questions?.eats === "yes" ? "Yes" : "No",
             },
             {
               accessor: "questions.vaccinationCard",
               title: "Vaccination Card",
               render: (record) =>
-                record.questions.vaccinationCard === "yes" ? "Yes" : "No",
+                record.questions?.vaccinationCard === "yes" ? "Yes" : "No",
             },
             {
               accessor: "questions.illness",
               title: "Illness",
               render: (record) =>
-                record.questions.illness === "yes" ? "Yes" : "No",
+                record.questions?.illness === "yes" ? "Yes" : "No",
             },
             {
               accessor: "questions.allergy",
               title: "Allergy",
               render: (record) =>
-                record.questions.allergy === "yes" ? "Yes" : "No",
+                record.questions?.allergy === "yes" ? "Yes" : "No",
             },
             {
               accessor: "actions",
