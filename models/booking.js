@@ -5,6 +5,12 @@ const bookingSchema = new mongoose.Schema({
   selectedSubService: { type: String, required: false },
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "Owner", required: true },
   petId: { type: mongoose.Schema.Types.ObjectId, ref: "Pet", required: true },
+  
+  transactionId: {type: String, required: false},
+  paymentstatus: { type: String, default: "pending" },
+  regularprice: {type: String, required: false},
+  sellprice: {type: String, required: false},
+
   questions: {
     eats: { type: String, required: true },
     vaccinationCard: { type: String, required: true },
