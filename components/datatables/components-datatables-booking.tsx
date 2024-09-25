@@ -1,356 +1,520 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css"; // Import Flatpickr styles
 import {
-  Button,
-  ActionIcon,
-  Modal,
-  Select,
-  Textarea,
-  Rating,
-} from "@mantine/core";
-import { FaPlus, FaEdit, FaTrash } from "react-icons/fa"; // Importing FontAwesome icons
-import Link from "next/link";
-import sortBy from "lodash/sortBy";
-import IconTrash from "@/components/icon/icon-trash";
-import Swal from "sweetalert2";
-import { Dialog, Transition } from "@headlessui/react";
+  FaDog,
+  FaCat,
+  FaSyringe,
+  FaHeartbeat,
+  FaHome,
+  FaFish,
+  FaQuestionCircle,
+} from "react-icons/fa";
 
-const ComponentsDatatablesBooking = () => {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [status, setStatus] = useState("");
-  const [initialRecords, setInitialRecords] = useState([]); // Initial fetched records
-  const [recordsData, setRecordsData] = useState([]); // Data to display in the table
-  const [page, setPage] = useState(1);
-  const PAGE_SIZES = [10, 20, 30, 50];
-  const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-  const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-    columnAccessor: "bookingDate",
-    direction: "asc",
+const servicesData: { [key: string]: string[] } = {
+  "KMC License": [],
+  "Pet Insurance": [],
+  Food: [],
+  "Vaccination For Dogs": [
+    "Puppy DP",
+    "Dhppil",
+    "Dhppil booster",
+    "Rabies",
+    "Rabies booster",
+
+    "Kennel Cough",
+    "Canine Corona",
+  ],
+  "Vaccination For Cats": [
+    "Tricat",
+    "Tricat Booster",
+    "Rabies",
+    "Rabies Booster",
+  ],
+  "Health Check": [
+    "Blood Test",
+    "XRAY",
+    "USG",
+    "ECHO",
+    "Canine Parvo CPV",
+    "Canine EHR",
+    "Canine Babesia",
+    "Canine Distemper",
+    "Feline FPV Parvo",
+  ],
+  "Vet Service": ["On call", "At home", "At clinic"],
+  "Health Care Service at Home": [
+    "IV-Saline",
+    "Injections",
+    "Spot On",
+    "Deworming",
+  ],
+  "Medicine Delivery": [],
+  "Aquarium Maintenance": [],
+};
+
+// Icons for services
+const iconsMap: { [key: string]: JSX.Element } = {
+  "KMC License": <FaDog />,
+  "Pet Insurance": <FaHeartbeat />,
+  Food: <FaDog />,
+  "Vaccination For Dogs": <FaSyringe />,
+  "Vaccination For Cats": <FaSyringe />,
+  "Health Check": <FaHeartbeat />,
+  "Vet Service": <FaHome />,
+  "Health Care Service at Home": <FaHome />,
+  "Medicine Delivery": <FaDog />,
+  "Aquarium Maintenance": <FaFish />,
+};
+
+// Icons for sub-services (default to FaQuestionCircle)
+const subIconsMap: { [key: string]: JSX.Element } = {
+  "Puppy DP": <FaSyringe />,
+  Rabies: <FaSyringe />,
+  Tricat: <FaSyringe />,
+  // Add more sub-service icons as needed
+};
+
+interface Address {
+  street: string;
+  city: string;
+  zip: string;
+  country: string;
+  _id: string;
+}
+
+interface Pet {
+  _id: string;
+  name: string;
+  species: string;
+  breed: string;
+  age?: number;
+  weight: number;
+  owner: string;
+}
+
+interface Owner {
+  _id: string;
+  name: string;
+  email: string;
+  phoneno: string;
+  address: Address;
+  pets: Pet[];
+}
+
+export default function HomePage() {
+  const [selectedService, setSelectedService] = useState<string>("");
+  const [subServices, setSubServices] = useState<string[]>([]);
+  const [selectedSubService, setSelectedSubService] = useState<string>("");
+  const [owners, setOwners] = useState<Owner[]>([]);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>("");
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [questions, setQuestions] = useState({
+    eats: "",
+    vaccinationCard: "",
+    illness: "",
+    allergy: "",
   });
-  const [rating, setRating] = useState(0); // Star rating state
-  const [feedback, setFeedback] = useState(""); // Feedback comment state
-
-  // Fetch booking data from the API
-  const fetchBookingData = async () => {
-    try {
-      const response = await fetch("/api/booking");
-      const data = await response.json();
-
-      if (data.bookings && Array.isArray(data.bookings)) {
-        // Fetch owner and pet names for each booking
-        const bookingsWithNames = await Promise.all(
-          data.bookings.map(async (booking) => {
-            try {
-              const ownerResponse = await fetch(`/api/owner/${booking.ownerId}`);
-              const ownerData = await ownerResponse.json();
-
-              const petResponse = await fetch(`/api/pet/${booking.petId}`);
-              const petData = await petResponse.json();
-
-              // Handle cases where owner or pet data is missing
-              if (!ownerData.owner) {
-                console.error(`Owner data is missing for booking: ${booking._id}`);
-              }
-
-              if (!petData.pet) {
-                console.error(`Pet data is missing for booking: ${booking._id}`);
-              }
-
-              return {
-                ...booking,
-                ownerName: ownerData?.owner?.name || 'Unknown Owner',
-                petName: petData?.pet?.name || 'Unknown Pet',
-                questions: booking?.questions || {}, // Ensure questions field is always an object
-              };
-            } catch (error) {
-              console.error("Error fetching owner or pet data:", error);
-              return {
-                ...booking,
-                ownerName: "Unknown Owner",
-                petName: "Unknown Pet",
-                questions: {}, // Set default questions object to avoid undefined errors
-              };
-            }
-          })
-        );
-
-        // Sort bookings by bookingDate
-        const sortedBookings = sortBy(bookingsWithNames, "bookingDate");
-        setInitialRecords(sortedBookings);
-        setRecordsData(sortedBookings.slice(0, pageSize)); // Paginate data on initial load
-      } else {
-        console.error("Bookings data is not an array or missing.");
-      }
-    } catch (error) {
-      console.error("Error fetching booking data:", error);
-    }
-  };
+  const [bookingDate, setBookingDate] = useState<Date[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
+  const [transactionId, setTransactionId] = useState<string>(""); // New state for transactionId
+  const [paymentStatus, setPaymentStatus] = useState<string>(""); // New state for paymentStatus
+  const [regularprice, setRegularPrice] = useState<string>(""); // New state for regularPrice
+  const [sellprice, setSellPrice] = useState<string>(""); 
+  const [submitted, setSubmitted] = useState<boolean>(false); // New state for form submission
 
   useEffect(() => {
-    fetchBookingData(); // Fetch booking data on component mount
+    async function fetchOwners() {
+      const response = await fetch("/api/owner");
+      const data = await response.json();
+      setOwners(data.Owners);
+    }
+    fetchOwners();
   }, []);
 
-  // Handle pagination
-  useEffect(() => {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize;
-    setRecordsData(initialRecords.slice(from, to)); // Paginate records
-  }, [page, pageSize, initialRecords]);
+  const handleMainServiceChange = (service: string) => {
+    setSelectedService(service);
+    setSubServices(servicesData[service]);
+    setSelectedSubService("");
+  };
 
-  // Handle delete action
-  const handleDelete = async (id) => {
-    try {
-      const result = await Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, delete it!",
+  const handleOwnerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const ownerId = event.target.value;
+    setSelectedOwnerId(ownerId);
+    const selectedOwner = owners.find((owner) => owner._id === ownerId);
+    setPets(selectedOwner ? selectedOwner.pets : []);
+  };
+
+  const handlePetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const petId = event.target.value;
+    setSelectedPetId(petId);
+  };
+
+  const handleQuestionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setQuestions((prevQuestions) => ({
+      ...prevQuestions,
+      [name]: value,
+    }));
+  };
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    let startTime = new Date();
+    startTime.setHours(10, 0, 0, 0);
+    const endTime = new Date();
+    endTime.setHours(20, 0, 0, 0);
+
+    while (startTime <= endTime) {
+      const timeString = startTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
       });
-
-      if (result.isConfirmed) {
-        const response = await fetch(`/api/booking/${id}`, {
-          method: "DELETE",
-        });
-
-        if (response.ok) {
-          Swal.fire("Deleted!", "The booking has been deleted.", "success");
-          fetchBookingData(); // Refresh the data after deletion
-        } else {
-          console.error("Failed to delete booking");
-        }
-      }
-    } catch (error) {
-      console.error("Error deleting booking:", error);
+      slots.push(timeString);
+      startTime.setMinutes(startTime.getMinutes() + 20);
     }
+
+    return slots;
   };
 
-  const handleEditClick = (booking) => {
-    setSelectedBooking(booking);
-    setStatus(booking.status); // Ensure the initial status is set correctly
-    console.log("Selected booking status:", booking.status);
-    setIsEditModalOpen(true);
+  const formatDate = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
-  // Handle save action
-  const handleSave = async () => {
+  const resetForm = () => {
+    setSelectedService("");
+    setSubServices([]);
+    setSelectedSubService("");
+    setSelectedOwnerId("");
+    setSelectedPetId("");
+    setQuestions({
+      eats: "",
+      vaccinationCard: "",
+      illness: "",
+      allergy: "",
+    });
+    setBookingDate([]);
+    setSelectedTimeSlot("");
+    setTransactionId("");
+    setPaymentStatus("");
+    setRegularPrice("");
+    setSellPrice("");
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    // Ensure we only send the date in dd/mm/yyyy format without time
+    const formattedBookingDate =
+      bookingDate.length > 0 ? formatDate(bookingDate[0]) : "";
+
+    const formData = {
+      selectedService,
+      selectedSubService,
+      ownerId: selectedOwnerId,
+      petId: selectedPetId,
+      questions,
+      bookingDate: formattedBookingDate,
+      selectedTimeSlot,
+      transactionId,   // Include new fields
+      paymentStatus,
+      regularprice,
+      sellprice,
+    };
+
+    console.log("Form Data:", formData);
+
+    // Send data to the API
     try {
-      const response = await fetch(`/api/booking/${selectedBooking._id}`, {
-        method: "PUT",
+      const response = await fetch("/api/booking", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status }), // Send the updated status to the backend
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        setIsEditModalOpen(false);
-
-        // If the status is 'completed', open feedback modal
-        if (status === "completed") {
-          setIsFeedbackModalOpen(true);
-        } else {
-          Swal.fire("Updated!", "The booking status has been updated.", "success");
-          fetchBookingData(); // Refresh the data after update
-        }
+        console.log("Booking submitted successfully");
+        // After successful submission, set submitted state and reset the form
+        setSubmitted(true);
+        resetForm();
       } else {
-        console.error("Failed to update booking");
+        console.error("Failed to submit booking");
       }
     } catch (error) {
-      console.error("Error updating booking:", error);
-    }
-  };
-
-  // Handle feedback submit
-  const handleFeedbackSubmit = async () => {
-    try {
-      const response = await fetch(`/api/booking/${selectedBooking._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "completed", // Ensure the status is "completed"
-          rating, // Send the selected rating
-          feedback, // Send the feedback provided by the user
-        }),
-      });
-
-      if (response.ok) {
-        Swal.fire("Thank you!", "Your feedback has been submitted.", "success");
-        setIsFeedbackModalOpen(false); // Close the feedback modal
-        fetchBookingData(); // Refresh the bookings data
-      } else {
-        const data = await response.json();
-        Swal.fire("Error", data.message || "Failed to submit feedback.", "error");
-      }
-    } catch (error) {
-      console.error("Error submitting feedback:", error);
-      Swal.fire("Error", "Failed to submit feedback.", "error");
+      console.error("Error:", error);
     }
   };
 
   return (
-    <div className="panel mt-6">
-      <h5 className="mb-5 text-lg font-semibold dark:text-white-light">
-        Bookings
-      </h5>
+    <div className="container mx-auto max-w-3xl rounded-lg bg-gray-50 p-8 shadow-lg">
+      {!submitted ? (
+        <>
+          <h1 className="mb-6 text-center text-3xl font-bold">Booking Form</h1>
 
-      {/* Add Booking Button */}
-      <div className="mb-4 flex justify-end">
-        <Link href="/addbooking" passHref>
-          <Button leftIcon={<FaPlus />}>Add Booking</Button>
-        </Link>
-      </div>
-
-      {/* DataTable for displaying booking records */}
-      <div className="datatables">
-        <DataTable
-          highlightOnHover
-          className="table-hover whitespace-nowrap"
-          records={recordsData}
-          columns={[
-            { accessor: "selectedService", sortable: true, title: "Service" },
-            {
-              accessor: "selectedSubService",
-              sortable: true,
-              title: "Sub Service",
-            },
-            {
-              accessor: "bookingDate",
-              sortable: true,
-              title: "Booking Date",
-              render: (record) => record.bookingDate,
-            },
-            { accessor: "selectedTimeSlot", title: "Time Slot" },
-            { accessor: "status", title: "Status" },
-            { accessor: "rating", title: "Rating" },
-            { accessor: "feedback", title: "Feedback" },
-            {
-              accessor: "ownerName",
-              title: "Owner",
-              render: (record) => record.ownerName,
-            },
-            {
-              accessor: "petName",
-              title: "Pet",
-              render: (record) => record.petName,
-            },
-            {
-              accessor: "questions.eats",
-              title: "Eats",
-              render: (record) =>
-                record.questions?.eats === "yes" ? "Yes" : "No",
-            },
-            {
-              accessor: "questions.vaccinationCard",
-              title: "Vaccination Card",
-              render: (record) =>
-                record.questions?.vaccinationCard === "yes" ? "Yes" : "No",
-            },
-            {
-              accessor: "questions.illness",
-              title: "Illness",
-              render: (record) =>
-                record.questions?.illness === "yes" ? "Yes" : "No",
-            },
-            {
-              accessor: "questions.allergy",
-              title: "Allergy",
-              render: (record) =>
-                record.questions?.allergy === "yes" ? "Yes" : "No",
-            },
-            {
-              accessor: "actions",
-              title: "Actions",
-              render: (record) => (
-                <div className="flex items-center gap-2">
-                  {/* Edit Link */}
-                  {/* Edit Modal */}
-                  <Modal
-                    opened={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    title="Edit Booking Status"
-                  >
-                    <Select
-                      label="Status"
-                      placeholder="Select status"
-                      value={status}
-                      onChange={setStatus} // This updates the state with the new status
-                      data={[
-                        { value: "pending", label: "Pending" },
-                        { value: "confirmed", label: "Confirmed" },
-                        { value: "cancelled", label: "Cancelled" },
-                        { value: "completed", label: "Completed" },
-                      ]}
-                    />
-
-                    <Button onClick={handleSave} className="mt-4">
-                      Save
-                    </Button>
-                  </Modal>
-
-                  {/* Edit Button */}
-                  <ActionIcon
-                    color="blue"
-                    onClick={() => handleEditClick(record)}
-                  >
-                    <FaEdit />
-                  </ActionIcon>
-
-                  {/* Delete Button */}
+          <form onSubmit={handleSubmit}>
+            {/* Main Services */}
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-medium">Main Services</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {Object.keys(servicesData).map((service) => (
                   <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(record._id)}
+                    key={service}
+                    type="button"
+                    className={`flex items-center space-x-3 rounded-lg border p-4 transition hover:bg-gray-200 ${
+                      selectedService === service
+                        ? "bg-blue-500 text-white"
+                        : "bg-white"
+                    }`}
+                    onClick={() => handleMainServiceChange(service)}
                   >
-                    <IconTrash />
+                    <div className="text-2xl">
+                      {iconsMap[service] || <FaDog />}
+                    </div>
+                    <span className="text-lg font-medium">{service}</span>
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sub Services */}
+            {subServices.length > 0 && (
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-medium">
+                  Sub Services for {selectedService}
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  {subServices.map((subService) => (
+                    <button
+                      key={subService}
+                      type="button"
+                      className={`flex items-center space-x-3 rounded-lg border p-4 transition hover:bg-gray-200 ${
+                        selectedSubService === subService
+                          ? "bg-green-500 text-white"
+                          : "bg-white"
+                      }`}
+                      onClick={() => setSelectedSubService(subService)}
+                    >
+                      <div className="text-2xl">
+                        {subIconsMap[subService] || <FaQuestionCircle />}
+                      </div>
+                      <span className="text-lg font-medium">{subService}</span>
+                    </button>
+                  ))}
                 </div>
-              ),
-            },
-          ]}
-          totalRecords={initialRecords.length}
-          recordsPerPage={pageSize}
-          page={page}
-          onPageChange={(p) => setPage(p)}
-          recordsPerPageOptions={PAGE_SIZES}
-          onRecordsPerPageChange={setPageSize}
-          sortStatus={sortStatus}
-          onSortStatusChange={setSortStatus}
-        />
-      </div>
+              </div>
+            )}
 
-      {/* Feedback Modal */}
-      <Modal
-        opened={isFeedbackModalOpen}
-        onClose={() => setIsFeedbackModalOpen(false)}
-        title="Booking Feedback"
-      >
-        <div>
-          <label htmlFor="rating">Rate the Service:</label>
-          <Rating value={rating} onChange={setRating} />
+            {/* Owner Selection */}
+            <div>
+              <label className="mb-2 block text-lg font-medium" htmlFor="owner">
+                Owner
+              </label>
+              <select
+                id="owner"
+                value={selectedOwnerId}
+                onChange={handleOwnerChange}
+                className="mb-4 w-full rounded-lg border px-4 py-2 hover:border-gray-400 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Select an Owner</option>
+                {owners.map((owner) => (
+                  <option key={owner._id} value={owner._id}>
+                    {owner.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <Textarea
-            label="Comments"
-            placeholder="Share your feedback"
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            minRows={3}
-          />
+            {/* Pet Selection */}
+            {pets.length > 0 && (
+              <div>
+                <label className="mb-2 block text-lg font-medium" htmlFor="pet">
+                  Pet
+                </label>
+                <select
+                  id="pet"
+                  value={selectedPetId}
+                  onChange={handlePetChange}
+                  className="mb-4 w-full rounded-lg border px-4 py-2 hover:border-gray-400 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">Select a Pet</option>
+                  {pets.map((pet) => (
+                    <option key={pet._id} value={pet._id}>
+                      {pet.name} - {pet.species} ({pet.breed})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <Button onClick={handleFeedbackSubmit} className="mt-4">
-            Submit Feedback
-          </Button>
+<div className="mb-8">
+              <label htmlFor="transactionId" className="block text-lg font-medium text-gray-700">
+                Transaction ID
+              </label>
+              <input
+                type="text"
+                id="transactionId"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="paymentStatus" className="block text-lg font-medium text-gray-700">
+                Payment Status
+              </label>
+              <input
+                type="text"
+                id="paymentStatus"
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="regularprice" className="block text-lg font-medium text-gray-700">
+                Regular Price
+              </label>
+              <input
+                type="text"
+                id="regularprice"
+                value={regularprice}
+                onChange={(e) => setRegularPrice(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="sellPrice" className="block text-lg font-medium text-gray-700">
+                Sell Price
+              </label>
+              <input
+                type="text"
+                id="sellprice"
+                value={sellprice}
+                onChange={(e) => setSellPrice(e.target.value)}
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </div>
+
+
+
+            {/* Yes/No Questions */}
+            {["eats", "vaccinationCard", "illness", "allergy"].map((field) => (
+              <div key={field} className="mb-4">
+                <p className="mb-2 text-lg font-medium capitalize">
+                  {field === "vaccinationCard"
+                    ? "Does your pet have a vaccination card and is it updated?"
+                    : `Is your pet ${field.replace(/([A-Z])/g, " $1")}?`}
+                </p>
+                <div className="flex gap-4">
+                  <label>
+                    <input
+                      type="radio"
+                      name={field}
+                      value="yes"
+                      checked={
+                        questions[field as keyof typeof questions] === "yes"
+                      }
+                      onChange={handleQuestionChange}
+                    />
+                    Yes
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name={field}
+                      value="no"
+                      checked={
+                        questions[field as keyof typeof questions] === "no"
+                      }
+                      onChange={handleQuestionChange}
+                    />
+                    No
+                  </label>
+                </div>
+              </div>
+            ))}
+
+            {/* Booking Date */}
+            <div>
+              <label
+                className="mb-2 block text-lg font-medium"
+                htmlFor="bookingDate"
+              >
+                Booking Date
+              </label>
+              <Flatpickr
+                value={bookingDate}
+                onChange={setBookingDate}
+                options={{
+                  dateFormat: "d/m/Y",
+                }}
+                className="mb-4 w-full rounded-lg border px-4 py-2 hover:border-gray-400 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Time Slot Selection */}
+            <div>
+              <label className="mb-2 block text-lg font-medium">
+                Select Time Slot
+              </label>
+              <div className="mb-6 grid grid-cols-5 gap-2">
+                {generateTimeSlots().map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    className={`rounded-lg border p-2 text-center ${
+                      selectedTimeSlot === slot
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-100 hover:bg-gray-200"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedTimeSlot(slot);
+                    }}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-blue-500 px-4 py-2 font-medium text-white hover:bg-blue-600"
+            >
+              Submit
+            </button>
+          </form>
+        </>
+      ) : (
+        <div className="text-center">
+          <h2 className="mb-4 text-3xl font-bold text-green-600">
+            Booking Successful!
+          </h2>
+          <p className="text-lg">
+            Your booking has been submitted successfully. We'll contact you
+            shortly.
+          </p>
+          <button
+            className="mt-6 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white hover:bg-blue-600"
+            onClick={() => setSubmitted(false)} // Reset the form to allow another booking
+          >
+            Make Another Booking
+          </button>
         </div>
-      </Modal>
+      )}
     </div>
   );
-};
-
-export default ComponentsDatatablesBooking;
+}
