@@ -13,68 +13,29 @@ import {
   FaQuestionCircle,
 } from "react-icons/fa";
 
-const servicesData: { [key: string]: string[] } = {
-  "KMC License": [],
-  "Pet Insurance": [],
-  Food: [],
-  "Vaccination For Dogs": [
-    "Puppy DP",
-    "Dhppil",
-    "Dhppil booster",
-    "Rabies",
-    "Rabies booster",
-
-    "Kennel Cough",
-    "Canine Corona",
-  ],
-  "Vaccination For Cats": [
-    "Tricat",
-    "Tricat Booster",
-    "Rabies",
-    "Rabies Booster",
-  ],
-  "Health Check": [
-    "Blood Test",
-    "XRAY",
-    "USG",
-    "ECHO",
-    "Canine Parvo CPV",
-    "Canine EHR",
-    "Canine Babesia",
-    "Canine Distemper",
-    "Feline FPV Parvo",
-  ],
-  "Vet Service": ["On call", "At home", "At clinic"],
-  "Health Care Service at Home": [
-    "IV-Saline",
-    "Injections",
-    "Spot On",
-    "Deworming",
-  ],
-  "Medicine Delivery": [],
-  "Aquarium Maintenance": [],
-};
-
 // Icons for services
 const iconsMap: { [key: string]: JSX.Element } = {
-  "KMC License": <FaDog />,
-  "Pet Insurance": <FaHeartbeat />,
-  Food: <FaDog />,
-  "Vaccination For Dogs": <FaSyringe />,
-  "Vaccination For Cats": <FaSyringe />,
-  "Health Check": <FaHeartbeat />,
-  "Vet Service": <FaHome />,
-  "Health Care Service at Home": <FaHome />,
-  "Medicine Delivery": <FaDog />,
-  "Aquarium Maintenance": <FaFish />,
+  "kmc license": <FaDog />,
+  "pet insurance": <FaHeartbeat />,
+  food: <FaDog />,
+  "vaccination for dogs": <FaSyringe />,
+  "vaccination for cats": <FaSyringe />,
+  "health check(blood tests)": <FaHeartbeat />,
+  "health check(kit based)": <FaHeartbeat />,
+  "health check(x-ray)": <FaHeartbeat />,
+  "vet service": <FaHome />,
+  "health care service at home": <FaHome />,
+  "medicine delivery": <FaDog />,
+  "aquarium maintenance": <FaFish />,
+  // Add more services as necessary
 };
 
 // Icons for sub-services (default to FaQuestionCircle)
 const subIconsMap: { [key: string]: JSX.Element } = {
-  "Puppy DP": <FaSyringe />,
-  Rabies: <FaSyringe />,
-  Tricat: <FaSyringe />,
-  // Add more sub-service icons as needed
+  "puppy dp": <FaSyringe />,
+  rabies: <FaSyringe />,
+  tricat: <FaSyringe />,
+  // Add more sub-service icons as necessary
 };
 
 interface Address {
@@ -106,8 +67,8 @@ interface Owner {
 
 export default function HomePage() {
   const [selectedService, setSelectedService] = useState<string>("");
-  const [subServices, setSubServices] = useState<string[]>([]);
-  const [selectedSubService, setSelectedSubService] = useState<string>("");
+  const [subServices, setSubServices] = useState<any[]>([]);
+  const [selectedSubService, setSelectedSubService] = useState<any | null>(null);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>("");
   const [pets, setPets] = useState<Pet[]>([]);
@@ -120,11 +81,27 @@ export default function HomePage() {
   });
   const [bookingDate, setBookingDate] = useState<Date[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
-  const [transactionId, setTransactionId] = useState<string>(""); // New state for transactionId
-  const [paymentStatus, setPaymentStatus] = useState<string>(""); // New state for paymentStatus
-  const [regularprice, setRegularPrice] = useState<string>(""); // New state for regularPrice
-  const [sellprice, setSellPrice] = useState<string>(""); 
-  const [submitted, setSubmitted] = useState<boolean>(false); // New state for form submission
+  const [transactionId, setTransactionId] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string>(""); 
+  const [regularPrice, setRegularPrice] = useState<string>(""); 
+  const [sellPrice, setSellPrice] = useState<string>(""); 
+  const [submitted, setSubmitted] = useState<boolean>(false); 
+  const [services, setServices] = useState<any[]>([]); 
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const response = await fetch("/api/services");
+        const data = await response.json();
+        console.log("Services Data: ", data);
+        setServices(data.services);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    }
+    fetchServices();
+  }, []);
+  
 
   useEffect(() => {
     async function fetchOwners() {
@@ -135,10 +112,34 @@ export default function HomePage() {
     fetchOwners();
   }, []);
 
-  const handleMainServiceChange = (service: string) => {
-    setSelectedService(service);
-    setSubServices(servicesData[service]);
-    setSelectedSubService("");
+  const handleMainServiceChange = (service: any) => {
+    const serviceName = service?.services[0]?.name || ""; // Ensure the name exists
+    setSelectedService(serviceName); 
+    const subServices = service.subservices || [];
+  
+   
+    const unnamedSubService = subServices.find((subService: any) => !subService.name);
+  
+    if (unnamedSubService) {
+    
+      setRegularPrice(unnamedSubService.regularprice || "");
+      setSellPrice(unnamedSubService.sellprice || "");
+    } else {
+      setRegularPrice("");
+      setSellPrice("");
+    }
+  
+    setSubServices(subServices); 
+    setSelectedSubService(null); 
+  };
+  
+  
+  
+
+  const handleSubServiceChange = (subService: any) => {
+    setSelectedSubService(subService);
+    setRegularPrice(subService.regularprice); 
+    setSellPrice(subService.sellprice); 
   };
 
   const handleOwnerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -190,7 +191,7 @@ export default function HomePage() {
   const resetForm = () => {
     setSelectedService("");
     setSubServices([]);
-    setSelectedSubService("");
+    setSelectedSubService(null);
     setSelectedOwnerId("");
     setSelectedPetId("");
     setQuestions({
@@ -210,27 +211,23 @@ export default function HomePage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    // Ensure we only send the date in dd/mm/yyyy format without time
     const formattedBookingDate =
       bookingDate.length > 0 ? formatDate(bookingDate[0]) : "";
 
     const formData = {
       selectedService,
-      selectedSubService,
+      selectedSubService: selectedSubService?.name,
       ownerId: selectedOwnerId,
       petId: selectedPetId,
       questions,
       bookingDate: formattedBookingDate,
       selectedTimeSlot,
-      transactionId,   // Include new fields
+      transactionId,
       paymentStatus,
-      regularprice,
-      sellprice,
+      regularprice: regularPrice,
+      sellprice: sellPrice,
     };
 
-    console.log("Form Data:", formData);
-
-    // Send data to the API
     try {
       const response = await fetch("/api/booking", {
         method: "POST",
@@ -241,8 +238,6 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        console.log("Booking submitted successfully");
-        // After successful submission, set submitted state and reset the form
         setSubmitted(true);
         resetForm();
       } else {
@@ -264,23 +259,29 @@ export default function HomePage() {
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-medium">Main Services</h2>
               <div className="grid grid-cols-2 gap-4">
-                {Object.keys(servicesData).map((service) => (
-                  <button
-                    key={service}
-                    type="button"
-                    className={`flex items-center space-x-3 rounded-lg border p-4 transition hover:bg-gray-200 ${
-                      selectedService === service
-                        ? "bg-blue-500 text-white"
-                        : "bg-white"
-                    }`}
-                    onClick={() => handleMainServiceChange(service)}
-                  >
-                    <div className="text-2xl">
-                      {iconsMap[service] || <FaDog />}
-                    </div>
-                    <span className="text-lg font-medium">{service}</span>
-                  </button>
-                ))}
+              {services.length > 0 ? (
+  services.map((service) => (
+    <button
+      key={service._id}
+      type="button"
+      className={`flex items-center space-x-3 rounded-lg border p-4 transition hover:bg-gray-200 ${
+        selectedService === service.services[0]?.name ? "bg-blue-500 text-white" : "bg-white"
+      }`}
+      onClick={() => handleMainServiceChange(service)}
+    >
+      <div className="text-2xl">
+        {service.services[0]?.name ? iconsMap[service.services[0]?.name.toLowerCase()] || <FaDog /> : <FaDog />}
+      </div>
+      <span className="text-lg font-medium">
+        {service.services[0]?.name || "Unnamed Service"}
+      </span>
+    </button>
+  ))
+) : (
+  <p>Loading services...</p>
+)}
+
+
               </div>
             </div>
 
@@ -293,19 +294,20 @@ export default function HomePage() {
                 <div className="grid grid-cols-2 gap-4">
                   {subServices.map((subService) => (
                     <button
-                      key={subService}
+                      key={subService._id}
                       type="button"
                       className={`flex items-center space-x-3 rounded-lg border p-4 transition hover:bg-gray-200 ${
-                        selectedSubService === subService
+                        selectedSubService?.name === subService.name
                           ? "bg-green-500 text-white"
                           : "bg-white"
                       }`}
-                      onClick={() => setSelectedSubService(subService)}
+                      onClick={() => handleSubServiceChange(subService)}
                     >
                       <div className="text-2xl">
-                        {subIconsMap[subService] || <FaQuestionCircle />}
+                        {subIconsMap[subService.name.toLowerCase()] || <FaQuestionCircle />}
                       </div>
-                      <span className="text-lg font-medium">{subService}</span>
+                      <span className="text-lg font-medium">{subService.name}</span>
+                     
                     </button>
                   ))}
                 </div>
@@ -354,7 +356,8 @@ export default function HomePage() {
               </div>
             )}
 
-<div className="mb-8">
+            {/* Transaction ID */}
+            <div className="mb-8">
               <label htmlFor="transactionId" className="block text-lg font-medium text-gray-700">
                 Transaction ID
               </label>
@@ -367,6 +370,7 @@ export default function HomePage() {
               />
             </div>
 
+            {/* Payment Status */}
             <div className="mb-8">
               <label htmlFor="paymentStatus" className="block text-lg font-medium text-gray-700">
                 Payment Status
@@ -380,32 +384,35 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="mb-8">
-              <label htmlFor="regularprice" className="block text-lg font-medium text-gray-700">
-                Regular Price
-              </label>
-              <input
-                type="text"
-                id="regularprice"
-                value={regularprice}
-                onChange={(e) => setRegularPrice(e.target.value)}
-                className="w-full rounded border border-gray-300 p-2"
-              />
-            </div>
+           {/* Regular Price */}
+<div className="mb-8">
+  <label htmlFor="regularprice" className="block text-lg font-medium text-gray-700">
+    Regular Price
+  </label>
+  <input
+    type="text"
+    id="regularprice"
+    value={regularPrice} // Bind the regularPrice state
+    onChange={(e) => setRegularPrice(e.target.value)} // Allow manual changes if needed
+    className="w-full rounded border border-gray-300 p-2"
+    readOnly // Make this field read-only since it should be set from the service
+  />
+</div>
 
-            <div className="mb-8">
-              <label htmlFor="sellPrice" className="block text-lg font-medium text-gray-700">
-                Sell Price
-              </label>
-              <input
-                type="text"
-                id="sellprice"
-                value={sellprice}
-                onChange={(e) => setSellPrice(e.target.value)}
-                className="w-full rounded border border-gray-300 p-2"
-              />
-            </div>
-
+{/* Sell Price */}
+<div className="mb-8">
+  <label htmlFor="sellprice" className="block text-lg font-medium text-gray-700">
+    Sell Price
+  </label>
+  <input
+    type="text"
+    id="sellprice"
+    value={sellPrice} // Bind the sellPrice state
+    onChange={(e) => setSellPrice(e.target.value)} // Allow manual changes if needed
+    className="w-full rounded border border-gray-300 p-2"
+    readOnly // Make this field read-only since it should be set from the service
+  />
+</div>
 
 
             {/* Yes/No Questions */}
